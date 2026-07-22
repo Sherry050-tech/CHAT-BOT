@@ -13,8 +13,15 @@ from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from app.models import UploadResponse
 from app.services import rag_service
 
+# Used only to create a thread when the user uploads before chatting
+from app.services import chat_service
+
 
 router = APIRouter(tags=["upload"])
+
+
+# Same placeholder user as the chat router, until login exists
+DEFAULT_USER_ID = "anon"
 
 
 # My own rules for what files I will accept
@@ -28,20 +35,24 @@ ALLOWED_EXTENSIONS = [".pdf", ".docx", ".txt", ".md"]
 @router.post("/upload", response_model=UploadResponse)
 async def upload_file(
     file: UploadFile = File(...),
-    thread_id: str = Form(...),
+    thread_id: str | None = Form(None),
 ):
     """
-    thread_id comes in as a form field alongside the file, because every
-    stored chunk has to be linked to a conversation (Zainab's DocumentChunk
-    model requires a thread_id). Without it, the bot would not know which
-    document belongs to which chat.
+    Every stored chunk has to be linked to a conversation, because
+    DocumentChunk requires a thread_id and the bot needs to know which
+    chat a document belongs to.
+
+    thread_id is optional here on purpose: the user can upload a file
+    before sending any message, in which case there is no thread yet.
+    When that happens we create one, and send its id back so the
+    frontend can keep using it for the rest of the conversation.
 
     This is `async def` because reading a file takes time, and async lets
     the server serve other requests while it waits.
     """
 
-    if not thread_id.strip():
-        raise HTTPException(status_code=400, detail="thread_id is required")
+    if not thread_id or not thread_id.strip():
+        thread_id = chat_service.get_or_create_thread(None, DEFAULT_USER_ID)
 
     filename = file.filename or ""
 

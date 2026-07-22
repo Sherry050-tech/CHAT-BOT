@@ -13,7 +13,14 @@ There is no chat logic, no database code, and no AI code in this file.
 from fastapi import APIRouter, HTTPException
 
 # Zainab's file - the shapes of data going in and out of the API
-from app.models import ChatRequest, ChatResponse, ThreadSummary, RenameThreadRequest
+from app.models import (
+    ChatRequest,
+    ChatResponse,
+    ThreadSummary,
+    RenameThreadRequest,
+    ThreadDetail,
+    MessageOut,
+)
 
 # Shehryar's file - this does the actual thinking
 from app.services import chat_service
@@ -56,10 +63,13 @@ def chat(request: ChatRequest):
 # ============================================================
 # GET /threads  ->  list all past conversations
 # ============================================================
-@router.get("/threads", response_model=list[ThreadSummary])
+@router.get("/threads")
 def get_threads():
     """
     Returns the list of conversations for the current user.
+
+    The list is wrapped in an object as {"threads": [...]} rather than
+    sent as a bare array, because the frontend reads it as data.threads.
     """
 
     threads = chat_service.list_threads(user_id=DEFAULT_USER_ID)
@@ -68,14 +78,44 @@ def get_threads():
     # but the API sends it out as "thread_id", so I rename it here.
     # A brand new thread may not have updated_at yet, so I fall back
     # to created_at in that case.
-    return [
-        ThreadSummary(
-            thread_id=thread["id"],
-            title=thread["title"],
-            updated_at=thread.get("updated_at") or thread["created_at"],
-        )
-        for thread in threads
-    ]
+    return {
+        "threads": [
+            ThreadSummary(
+                thread_id=thread["id"],
+                title=thread["title"],
+                updated_at=thread.get("updated_at") or thread["created_at"],
+            )
+            for thread in threads
+        ]
+    }
+
+
+# ============================================================
+# GET /threads/{thread_id}  ->  load one conversation's messages
+# ============================================================
+@router.get("/threads/{thread_id}", response_model=ThreadDetail)
+def get_thread(thread_id: str):
+    """
+    The frontend calls this when a user clicks a thread in the sidebar,
+    so it can redraw the past messages of that conversation.
+    """
+
+    messages = chat_service.get_chat_history(thread_id)
+
+    # I build each message explicitly instead of returning the raw database
+    # documents, because those also contain MongoDB's own _id field, which
+    # cannot be converted to JSON.
+    return ThreadDetail(
+        thread_id=thread_id,
+        messages=[
+            MessageOut(
+                sender=m["sender"],
+                content=m["content"],
+                timestamp=m["timestamp"],
+            )
+            for m in messages
+        ],
+    )
 
 
 # ============================================================
