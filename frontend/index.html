@@ -225,8 +225,9 @@ async function uploadFile(file) {
     });
     const data = await res.json();
     if (data.thread_id) currentThreadId = data.thread_id;
-    fileChipName.textContent = file.name;
+    fileChipName.textContent = `${data.filename} (${data.chunks_stored} chunks)`;
     fileChip.classList.add("visible");
+    loadThreads();
   } catch (err) {
     console.error("Upload failed:", err);
   }
