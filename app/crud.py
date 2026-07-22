@@ -1,5 +1,5 @@
-from database import threads_collection, messages_collection, users_collection, chunks_collection
-from models import ChatMessage, Thread, User, DocumentChunk
+from app.database import threads_collection, messages_collection, users_collection, chunks_collection
+from app.models import ChatMessage, Thread, User, DocumentChunk
 
 # ---------- MESSAGES ----------
 

@@ -21,6 +21,7 @@ class Thread(BaseModel):
     user_id: str
     title: str = "New Conversation"
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 class User(BaseModel):
@@ -37,3 +38,34 @@ class DocumentChunk(BaseModel):
     chunk_text: str
     embedding: list[float]
     chunk_index: int
+
+class ChatRequest(BaseModel):
+    thread_id: Optional[str] = None
+    message: str
+
+class ChatResponse(BaseModel):
+    thread_id: str
+    reply: str
+
+class ThreadSummary(BaseModel):
+    thread_id: str
+    title: str
+    updated_at: datetime
+
+class RenameThreadRequest(BaseModel):
+    title: str
+
+class UploadResponse(BaseModel):
+    file_id: str
+    filename: str
+    thread_id: str
+    chunks_stored: int
+
+class MessageOut(BaseModel):
+    sender: str
+    content: str
+    timestamp: datetime
+
+class ThreadDetail(BaseModel):
+    thread_id: str
+    messages: list[MessageOut]
