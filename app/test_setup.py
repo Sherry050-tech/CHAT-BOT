@@ -1,5 +1,5 @@
-from models import User, Thread, ChatMessage
-from crud import create_user, create_thread, create_message, get_thread_history
+from app.models import User, Thread, ChatMessage
+from app.crud import create_user, create_thread, create_message, get_thread_history
 
 user = create_user(User(username="test_user"))
 print("Created user:", user)

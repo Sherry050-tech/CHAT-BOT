@@ -4,7 +4,7 @@ from sentence_transformers import SentenceTransformer
 from io import BytesIO
 import numpy as np
 from app.models import DocumentChunk
-from app.services.thread_service import create_document_chunk
+from app.crud import create_document_chunk
 
 embedder = SentenceTransformer("all-MiniLM-L6-v2")
 
