@@ -1,7 +1,7 @@
 """
 chat_service.py
 ----------------
-Shehryar's file.
+Sheharyar's file.
 
 Takes a user's message plus past history, sends it through LangChain,
 gets a reply back, and saves the exchange to the database.
@@ -15,6 +15,7 @@ Updated to match team conventions:
 - Imports from app.database / app.models (shared app/ package)
 """
 
+import os
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 
@@ -31,7 +32,13 @@ from app.crud import (
 )
 from app.services.rag_service import retrieve_top_chunks
 
-llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3)
+
+llm = ChatOpenAI(
+    model='openrouter/free',
+    temperature=0.3,
+    openai_api_key=os.getenv('OPENROUTER_API_KEY'),
+    openai_api_base='https://openrouter.ai/api/v1',
+)
 
 SYSTEM_PROMPT = (
     "You are a helpful assistant. Use the provided context from uploaded "
