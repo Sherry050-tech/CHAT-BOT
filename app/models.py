@@ -60,3 +60,12 @@ class UploadResponse(BaseModel):
     filename: str
     thread_id: str
     chunks_stored: int
+
+class MessageOut(BaseModel):
+    sender: str
+    content: str
+    timestamp: datetime
+
+class ThreadDetail(BaseModel):
+    thread_id: str
+    messages: list[MessageOut]
