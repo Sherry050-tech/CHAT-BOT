@@ -1,13 +1,16 @@
 from pypdf import PdfReader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from sentence_transformers import SentenceTransformer
+from io import BytesIO
 import numpy as np
+from app.models import DocumentChunk
+from app.services.thread_service import create_document_chunk
 
 embedder = SentenceTransformer("all-MiniLM-L6-v2")
 
 
-def extract_text_from_pdf(file_path):
-    reader = PdfReader(file_path)
+def extract_text_from_pdf(file_source):
+    reader = PdfReader(file_source)
     full_text = ""
     for page in reader.pages:
         full_text += page.extract_text()
@@ -37,3 +40,21 @@ def retrieve_top_chunks(question, chunks, vectors, top_k=3):
     scored.sort(reverse=True)
     top_matches = scored[:top_k]
     return [text for score, text in top_matches]
+
+def process_uploaded_file(thread_id: str, filename: str, file_bytes: bytes) -> dict:
+    file_source = BytesIO(file_bytes)
+    text = extract_text_from_pdf(file_source)
+    chunks = chunk_text(text)
+    vectors = embed_chunks(chunks)
+
+    for index, (chunk, vector) in enumerate(zip(chunks, vectors)):
+        document_chunk = DocumentChunk(
+            thread_id=thread_id,
+            source_filename=filename,
+            chunk_text=chunk,
+            embedding=vector.tolist(),
+            chunk_index=index
+        )
+        create_document_chunk(document_chunk)
+
+    return {"file_id": filename, "chunks_stored": len(chunks)}
