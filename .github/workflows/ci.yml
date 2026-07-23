@@ -57,19 +57,24 @@ jobs:
           tags: chatbot-api:ci
 
   deploy:
-    name: Deploy to Render
+    name: Deploy to Railway
     runs-on: ubuntu-latest
     needs: docker
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    container: ghcr.io/railwayapp/cli:latest
 
     steps:
-      - name: Trigger Render deploy
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Deploy to Railway
         run: |
-          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
-            echo "RENDER_DEPLOY_HOOK_URL is not set; skipping Render deploy."
+          if [ -z "$RAILWAY_TOKEN" ] || [ -z "$RAILWAY_SERVICE_ID" ]; then
+            echo "RAILWAY_TOKEN or RAILWAY_SERVICE_ID is not set; skipping Railway deploy."
             exit 0
           fi
 
-          curl -fsS -X POST "$RENDER_DEPLOY_HOOK_URL"
+          railway up --ci --service "$RAILWAY_SERVICE_ID"
         env:
-          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_SERVICE_ID: ${{ secrets.RAILWAY_SERVICE_ID }}
