@@ -16,6 +16,7 @@ Updated to match team conventions:
 """
 
 import os
+import re
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 
@@ -121,6 +122,9 @@ def generate_reply(thread_id: str | None, user_message: str, user_id: str = "ano
     # 4. Call the LLM
     response = llm.invoke(lc_messages)
     reply_text = response.content
+    
+    # Strip out stray "User Safety: safe" tags from free models
+    reply_text = re.sub(r"User Safety:\s*\w+\s*", "", reply_text).strip()
 
     # 5. Save both sides of the exchange
     save_message(thread_id, "user", user_message)
