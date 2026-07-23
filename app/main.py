@@ -27,12 +27,12 @@ app.include_router(upload_router.router)
 app.include_router(auth_router.router)
 app.include_router(speech_router.router)
 
-# --- FOOLPROOF PATH RESOLUTION ---
-# 1. Get the absolute path of main.py
-# 2. Go up one directory to the root of your project
-# 3. Join it with the "frontend" folder
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
+# --- THE FIX ---
+# This gets the exact folder where main.py is currently sitting
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Now mount it using the absolute path
+# This joins it with the frontend folder sitting right next to it
+FRONTEND_DIR = os.path.join(CURRENT_DIR, "frontend")
+
+# Mount the frontend
 app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
