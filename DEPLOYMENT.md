@@ -22,6 +22,7 @@ Add these in GitHub under:
 - `MONGODB_URI`
 - `DB_NAME`
 - `OPENROUTER_API_KEY`
+- `GROQ_API_KEY`
 - `RAILWAY_TOKEN`
 - `RAILWAY_SERVICE_ID`
 
@@ -71,6 +72,7 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
    - `MONGODB_URI`
    - `DB_NAME`
    - `OPENROUTER_API_KEY`
+   - `GROQ_API_KEY`
 6. Create a Railway project token.
 7. Add the project token to GitHub Actions secrets as `RAILWAY_TOKEN`.
 8. Copy the Railway service ID.
