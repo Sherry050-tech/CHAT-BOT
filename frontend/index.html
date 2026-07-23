@@ -113,7 +113,7 @@
     flex: 1; overflow-y: auto; padding: 32px 40px 110px;
     display: flex; flex-direction: column; align-items: center; gap: 20px;
   }
-  .msg-row { display: flex; gap: 10px; max-width: 600px; width: 100%; }
+  .msg-row { display: flex; gap: 10px; max-width: 600px; width: 100%; align-items: center; }
   .msg-row.user { justify-content: flex-end; }
   .msg-row.bot { align-items: flex-start; }
   .avatar {
@@ -127,6 +127,10 @@
     padding: 10px 15px; border-radius: 16px 16px 4px 16px; max-width: 80%;
   }
   .msg-row.bot .bubble { padding-top: 2px; }
+  .msg-link-btn {
+    border: none; background: transparent; cursor: pointer;
+    font-size: 12px; flex-shrink: 0; color: var(--text-muted);
+  }
   #file-chip {
     display: none; align-items: center; gap: 6px; width: fit-content; max-width: 600px;
     background: var(--blue-light); color: var(--blue); font-size: 12px;
@@ -200,11 +204,10 @@
 <div id="main">
   <div id="empty-greeting">Ready for some gupshup?</div>
   <div id="chat-log"></div>
-  <div id="file-chip"><span id="file-chip-name"></span><button id="file-chip-remove">x</button></div>
   <div id="input-bar">
-    <input type="file" id="file-input" style="display:none" />
-    <div id="thinking"><span>GupShup is thinking...</span></div>
-    <div id="input-shell">
+  <input type="file" id="file-input" style="display:none" />
+  <div id="file-chip"><span id="file-chip-name"></span><button id="file-chip-remove">x</button></div>
+  <div id="input-shell">
       <button id="upload-btn" title="Upload file">+</button>
       <input type="text" id="message-input" placeholder="Message GupShup" />
       <button id="send-btn" title="Send">
@@ -224,6 +227,7 @@ if (!currentUserId) {
 const API_BASE = "http://127.0.0.1:8000";
 let currentThreadId = null;
 let pendingFile = null;
+let attachedFileName = null;
 const chatLog = document.getElementById("chat-log");
 const threadList = document.getElementById("thread-list");
 const emptyGreeting = document.getElementById("empty-greeting");
@@ -242,7 +246,7 @@ async function loadFaceModels() {
   console.log("Face models loaded");
 }
 loadFaceModels();
-function addMessageToLog(sender, text) {
+function addMessageToLog(sender, text, fileName) {
   emptyGreeting.classList.add("hidden");
   inputBar.classList.add("at-bottom");
   const row = document.createElement("div");
@@ -257,6 +261,25 @@ function addMessageToLog(sender, text) {
   bubble.className = "bubble";
   bubble.textContent = text;
   row.appendChild(bubble);
+  if (fileName) {
+  const linkBtn = document.createElement("button");
+  linkBtn.className = "msg-link-btn";
+  linkBtn.textContent = "🔗";
+  linkBtn.title = "View attached file";
+
+  const nameLabel = document.createElement("span");
+  nameLabel.textContent = fileName;
+  nameLabel.style.fontSize = "12px";
+  nameLabel.style.color = "var(--text-muted)";
+  nameLabel.style.display = "none";
+
+  linkBtn.addEventListener("click", () => {
+    nameLabel.style.display = nameLabel.style.display === "none" ? "inline" : "none";
+  });
+
+  row.appendChild(linkBtn);
+  row.appendChild(nameLabel);
+}
   chatLog.appendChild(row);
   chatLog.scrollTop = chatLog.scrollHeight;
 }
@@ -390,9 +413,24 @@ function startNewChat() {
 async function sendMessage() {
   const text = messageInput.value.trim();
   if (!text) return;
-  addMessageToLog("user", text);
+  addMessageToLog("user", text, attachedFileName);
+  attachedFileName = null;
   messageInput.value = "";
-  thinkingEl.classList.add("visible");
+  fileChip.classList.remove("visible");
+
+  const placeholder = document.createElement("div");
+  placeholder.className = "msg-row bot";
+  const avatar = document.createElement("div");
+  avatar.className = "avatar";
+  avatar.textContent = "G";
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+  bubble.textContent = "GupShup is thinking...";
+  placeholder.appendChild(avatar);
+  placeholder.appendChild(bubble);
+  chatLog.appendChild(placeholder);
+  chatLog.scrollTop = chatLog.scrollHeight;
+
   try {
     const res = await fetch(`${API_BASE}/chat`, {
       method: "POST",
@@ -405,12 +443,13 @@ async function sendMessage() {
     });
     const data = await res.json();
     if (data.thread_id) currentThreadId = data.thread_id;
+    placeholder.remove();
     addMessageToLog("bot", data.reply);
   } catch (err) {
     console.error("Chat request failed:", err);
+    placeholder.remove();
     addMessageToLog("bot", "Something went wrong reaching the server.");
   } finally {
-    thinkingEl.classList.remove("visible");
     loadThreads();
   }
 }
@@ -418,6 +457,10 @@ async function uploadFile(file) {
   const formData = new FormData();
   formData.append("file", file);
   if (currentThreadId) formData.append("thread_id", currentThreadId);
+
+  fileChipName.textContent = `Uploading ${file.name}...`;
+  fileChip.classList.add("visible");
+
   try {
     const res = await fetch(`${API_BASE}/upload`, {
       method: "POST",
@@ -425,11 +468,15 @@ async function uploadFile(file) {
     });
     const data = await res.json();
     if (data.thread_id) currentThreadId = data.thread_id;
-    fileChipName.textContent = `${data.filename} (${data.chunks_stored} chunks)`;
-    fileChip.classList.add("visible");
+    fileChipName.textContent = data.filename;
+    attachedFileName = data.filename;
     loadThreads();
   } catch (err) {
     console.error("Upload failed:", err);
+    fileChipName.textContent = "Upload failed";
+    setTimeout(() => {
+      fileChip.classList.remove("visible");
+    }, 1800);
   }
 }
 document.getElementById("send-btn").addEventListener("click", sendMessage);
