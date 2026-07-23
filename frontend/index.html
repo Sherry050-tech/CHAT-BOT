@@ -3,55 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <title>Gupshup</title>
-
-const testVideo = document.getElementById("test-video");
-const testResult = document.getElementById("test-result");
-
-navigator.mediaDevices.getUserMedia({ video: true })
-  .then(stream => { testVideo.srcObject = stream; })
-  .catch(err => { testResult.textContent = "Camera error: " + err.message; });
-
-document.getElementById("test-detect-btn").addEventListener("click", async () => {
-  if (!modelsLoaded) {
-    testResult.textContent = "Models still loading, wait a moment and try again.";
-    return;
-  }
-  const detection = await faceapi
-    .detectSingleFace(testVideo, new faceapi.TinyFaceDetectorOptions())
-    .withFaceLandmarks()
-    .withFaceDescriptor();
-
-  if (detection) {
-    testResult.textContent = "Face detected! Embedding length: " + detection.descriptor.length;
-  } else {
-    testResult.textContent = "No face detected, try again.";
-  }
-});
-<script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-
-const testVideo = document.getElementById("test-video");
-const testResult = document.getElementById("test-result");
-
-navigator.mediaDevices.getUserMedia({ video: true })
-  .then(stream => { testVideo.srcObject = stream; })
-  .catch(err => { testResult.textContent = "Camera error: " + err.message; });
-
-document.getElementById("test-detect-btn").addEventListener("click", async () => {
-  if (!modelsLoaded) {
-    testResult.textContent = "Models still loading, wait a moment and try again.";
-    return;
-  }
-  const detection = await faceapi
-    .detectSingleFace(testVideo, new faceapi.TinyFaceDetectorOptions())
-    .withFaceLandmarks()
-    .withFaceDescriptor();
-
-  if (detection) {
-    testResult.textContent = "Face detected! Embedding length: " + detection.descriptor.length;
-  } else {
-    testResult.textContent = "No face detected, try again.";
-  }
-});
 <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 <style>
   #delete-modal.visible { display: flex !important; }
@@ -215,9 +166,6 @@ document.getElementById("test-detect-btn").addEventListener("click", async () =>
 
 <div id="main">
 <div style="padding:20px;">
-  <video id="test-video" width="320" height="240" autoplay muted style="border-radius:8px;"></video>
-  <button id="test-detect-btn">Test Face Detection</button>
-  <div id="test-result" style="margin-top:8px; font-size:13px;"></div>
 </div>
   <div class="mist-side mist-left"></div>
   <div class="mist-side mist-right"></div>  
@@ -240,6 +188,10 @@ document.getElementById("test-detect-btn").addEventListener("click", async () =>
 </div>
 
 <script>
+const currentUserId = localStorage.getItem("gupshup_user_id");
+if (!currentUserId) {
+  window.location.href = "auth.html";
+}
 const API_BASE = "http://127.0.0.1:8000";
 let currentThreadId = null;
 let pendingFile = null;
@@ -490,30 +442,6 @@ document.getElementById("file-chip-remove").addEventListener("click", () => {
 });
 
 loadThreads();
-
-const testVideo = document.getElementById("test-video");
-const testResult = document.getElementById("test-result");
-
-navigator.mediaDevices.getUserMedia({ video: true })
-  .then(stream => { testVideo.srcObject = stream; })
-  .catch(err => { testResult.textContent = "Camera error: " + err.message; });
-
-document.getElementById("test-detect-btn").addEventListener("click", async () => {
-  if (!modelsLoaded) {
-    testResult.textContent = "Models still loading, wait a moment and try again.";
-    return;
-  }
-  const detection = await faceapi
-    .detectSingleFace(testVideo, new faceapi.TinyFaceDetectorOptions())
-    .withFaceLandmarks()
-    .withFaceDescriptor();
-
-  if (detection) {
-    testResult.textContent = "Face detected! Embedding length: " + detection.descriptor.length;
-  } else {
-    testResult.textContent = "No face detected, try again.";
-  }
-});
 </script>
 
 </body>

@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Gupshup</title>
+<script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+<style>
+  body {
+    margin: 0; font-family: -apple-system, "Segoe UI", sans-serif;
+    background: #faf9f6; display: flex; align-items: center; justify-content: center;
+    height: 100vh;
+  }
+  #auth-box {
+    background: white; border: 1px solid #e5e2da; border-radius: 16px;
+    padding: 32px; width: 340px;
+  }
+  #tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+  .tab-btn {
+    flex: 1; padding: 10px; border: 1px solid #e5e2da; border-radius: 8px;
+    background: #faf9f6; color: #26211c; font-size: 14px; cursor: pointer;
+  }
+  .tab-btn.active { background: #3b7ed1; color: white; border-color: #3b7ed1; }
+  input {
+    width: 100%; padding: 10px; border: 1px solid #e5e2da; border-radius: 8px;
+    font-size: 14px; margin-bottom: 12px; box-sizing: border-box;
+  }
+  video { border-radius: 8px; margin: 12px 0; display: none; width: 100%; }
+  button.action {
+    width: 100%; padding: 10px; border: none; border-radius: 8px;
+    background: #3b7ed1; color: white; font-size: 14px; cursor: pointer; margin-top: 8px;
+  }
+  .face-toggle {
+    width: 100%; padding: 10px; border: 1px solid #3b7ed1; border-radius: 8px;
+    background: transparent; color: #3b7ed1; font-size: 14px; cursor: pointer; margin-top: 8px;
+  }
+  #status { margin-top: 12px; font-size: 13px; color: #8a8579; text-align: center; }
+  .panel { display: none; text-align: center; }
+  .panel.active { display: block; }
+</style>
+</head>
+<body>
+
+<div id="auth-box">
+  <div id="tabs">
+    <button class="tab-btn" id="tab-signup">Create Account</button>
+    <button class="tab-btn" id="tab-signin">Sign In</button>
+  </div>
+
+  <div class="panel" id="panel-signup">
+    <input type="text" id="signup-username" placeholder="Choose a username" />
+    <input type="email" id="signup-email" placeholder="Email (optional)" />
+    <video id="signup-video" autoplay muted></video>
+    <button class="action" id="signup-btn">Capture Face &amp; Sign Up</button>
+  </div>
+
+  <div class="panel" id="panel-signin">
+    <input type="text" id="signin-username" placeholder="Username" />
+    <button class="action" id="signin-username-btn">Sign In</button>
+    <button class="face-toggle" id="face-toggle-btn">Sign in with Face instead</button>
+    <video id="signin-video" autoplay muted></video>
+    <button class="action" id="signin-face-btn" style="display:none;">Capture Face &amp; Sign In</button>
+  </div>
+
+  <div id="status"></div>
+</div>
+
+<script>
+const API_BASE = "http://127.0.0.1:8000";
+let modelsLoaded = false;
+
+async function loadFaceModels() {
+  await faceapi.nets.tinyFaceDetector.loadFromUri('./models');
+  await faceapi.nets.faceLandmark68Net.loadFromUri('./models');
+  await faceapi.nets.faceRecognitionNet.loadFromUri('./models');
+  modelsLoaded = true;
+}
+window.addEventListener('load', loadFaceModels);
+
+const statusEl = document.getElementById("status");
+const tabSignup = document.getElementById("tab-signup");
+const tabSignin = document.getElementById("tab-signin");
+const panelSignup = document.getElementById("panel-signup");
+const panelSignin = document.getElementById("panel-signin");
+
+function showTab(tab) {
+  tabSignup.classList.toggle("active", tab === "signup");
+  tabSignin.classList.toggle("active", tab === "signin");
+  panelSignup.classList.toggle("active", tab === "signup");
+  panelSignin.classList.toggle("active", tab === "signin");
+  statusEl.textContent = "";
+}
+
+tabSignup.addEventListener("click", () => showTab("signup"));
+tabSignin.addEventListener("click", () => showTab("signin"));
+
+const hasAccount = localStorage.getItem("gupshup_has_account");
+showTab(hasAccount ? "signin" : "signup");
+
+function goToChat(userId, username) {
+  localStorage.setItem("gupshup_user_id", userId);
+  localStorage.setItem("gupshup_username", username);
+  localStorage.setItem("gupshup_has_account", "true");
+  setTimeout(() => { window.location.href = "index.html"; }, 600);
+}
+
+const signupVideo = document.getElementById("signup-video");
+navigator.mediaDevices.getUserMedia({ video: true })
+  .then(stream => { signupVideo.srcObject = stream; signupVideo.style.display = "block"; })
+  .catch(err => { statusEl.textContent = "Camera error: " + err.message; });
+
+document.getElementById("signup-btn").addEventListener("click", async () => {
+  const username = document.getElementById("signup-username").value.trim();
+  const email = document.getElementById("signup-email").value.trim();
+  if (!username) { statusEl.textContent = "Please enter a username."; return; }
+  if (!modelsLoaded) { statusEl.textContent = "Face models still loading, try again in a moment."; return; }
+
+  statusEl.textContent = "Detecting face...";
+  const detection = await faceapi
+    .detectSingleFace(signupVideo, new faceapi.TinyFaceDetectorOptions())
+    .withFaceLandmarks().withFaceDescriptor();
+
+  if (!detection) { statusEl.textContent = "No face detected, try again."; return; }
+
+  const faceEmbedding = Array.from(detection.descriptor);
+  try {
+    const res = await fetch(`${API_BASE}/signup`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, email: email || null, face_embedding: faceEmbedding })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      statusEl.textContent = "Account created! Signing you in...";
+      goToChat(data.user_id, data.username);
+    } else {
+      statusEl.textContent = "Error: " + (data.detail || "signup failed");
+    }
+  } catch (err) { statusEl.textContent = "Could not reach server: " + err.message; }
+});
+
+document.getElementById("signin-username-btn").addEventListener("click", async () => {
+  const username = document.getElementById("signin-username").value.trim();
+  if (!username) { statusEl.textContent = "Please enter a username."; return; }
+  try {
+    const res = await fetch(`${API_BASE}/signin/username`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      statusEl.textContent = "Signed in as " + data.username;
+      goToChat(data.user_id, data.username);
+    } else {
+      statusEl.textContent = "Error: " + (data.detail || "sign in failed");
+    }
+  } catch (err) { statusEl.textContent = "Could not reach server: " + err.message; }
+});
+
+const signinVideo = document.getElementById("signin-video");
+const faceSigninBtn = document.getElementById("signin-face-btn");
+document.getElementById("face-toggle-btn").addEventListener("click", async (e) => {
+  const on = signinVideo.style.display === "none" || !signinVideo.style.display;
+  if (on) {
+    signinVideo.style.display = "block";
+    faceSigninBtn.style.display = "block";
+    e.target.textContent = "Use username instead";
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      signinVideo.srcObject = stream;
+    } catch (err) { statusEl.textContent = "Camera error: " + err.message; }
+  } else {
+    signinVideo.style.display = "none";
+    faceSigninBtn.style.display = "none";
+    e.target.textContent = "Sign in with Face instead";
+  }
+});
+
+faceSigninBtn.addEventListener("click", async () => {
+  if (!modelsLoaded) { statusEl.textContent = "Face models still loading, try again."; return; }
+  statusEl.textContent = "Detecting face...";
+  const detection = await faceapi
+    .detectSingleFace(signinVideo, new faceapi.TinyFaceDetectorOptions())
+    .withFaceLandmarks().withFaceDescriptor();
+
+  if (!detection) { statusEl.textContent = "No face detected, try again."; return; }
+
+  const faceEmbedding = Array.from(detection.descriptor);
+  try {
+    const res = await fetch(`${API_BASE}/signin/face`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ face_embedding: faceEmbedding })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      statusEl.textContent = "Recognized as " + data.username + "!";
+      goToChat(data.user_id, data.username);
+    } else {
+      statusEl.textContent = "Error: " + (data.detail || "no match found");
+    }
+  } catch (err) { statusEl.textContent = "Could not reach server: " + err.message; }
+});
+</script>
+
+</body>
+</html>
