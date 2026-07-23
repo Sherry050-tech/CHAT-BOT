@@ -44,6 +44,7 @@ class DocumentChunk(BaseModel):
 class ChatRequest(BaseModel):
     thread_id: Optional[str] = None
     message: str
+    user_id: Optional[str] = None
 
 class ChatResponse(BaseModel):
     thread_id: str

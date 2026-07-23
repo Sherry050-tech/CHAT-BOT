@@ -338,7 +338,7 @@ function renderThreadList(threads) {
 }
 async function loadThreads() {
   try {
-    const res = await fetch(`${API_BASE}/threads`);
+    const res = await fetch(`${API_BASE}/threads?user_id=${currentUserId}`);
     const data = await res.json();
     renderThreadList(data.threads || []);
   } catch (err) {
@@ -399,7 +399,8 @@ async function sendMessage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         thread_id: currentThreadId,
-        message: text
+        message: text,
+        user_id: currentUserId
       })
     });
     const data = await res.json();

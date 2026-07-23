@@ -41,6 +41,12 @@ def signup(request: SignupRequest):
     if existing:
         raise HTTPException(status_code=400, detail="username already taken")
 
+    all_users = list(users_collection.find({"face_embedding": {"$ne": None}}))
+    for other_user in all_users:
+        distance = euclidean_distance(request.face_embedding, other_user["face_embedding"])
+        if distance < FACE_MATCH_THRESHOLD:
+            raise HTTPException(status_code=400, detail="this face is already registered to another account")
+
     hashed_password = pwd_context.hash(request.password)
     user = User(
         username=request.username,
