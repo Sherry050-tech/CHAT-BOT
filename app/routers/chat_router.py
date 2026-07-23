@@ -54,7 +54,7 @@ def chat(request: ChatRequest):
     result = chat_service.generate_reply(
         thread_id=request.thread_id,
         user_message=request.message,
-        user_id=DEFAULT_USER_ID,
+        user_id=request.user_id or DEFAULT_USER_ID,
     )
 
     return ChatResponse(**result)
@@ -64,7 +64,7 @@ def chat(request: ChatRequest):
 # GET /threads  ->  list all past conversations
 # ============================================================
 @router.get("/threads")
-def get_threads():
+def get_threads(user_id: str = DEFAULT_USER_ID):
     """
     Returns the list of conversations for the current user.
 
@@ -72,7 +72,7 @@ def get_threads():
     sent as a bare array, because the frontend reads it as data.threads.
     """
 
-    threads = chat_service.list_threads(user_id=DEFAULT_USER_ID)
+    threads = chat_service.list_threads(user_id=user_id)
 
     # The database stores the thread's id in a field called "id",
     # but the API sends it out as "thread_id", so I rename it here.

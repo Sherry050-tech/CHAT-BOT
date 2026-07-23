@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Gupshup</title>
+<script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: -apple-system, "Segoe UI", sans-serif;
+    background: #eef4fa;
+    display: flex; align-items: center; justify-content: center;
+    height: 100vh; overflow: hidden; position: relative;
+  }
+
+  .mist-blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(60px);
+    pointer-events: none;
+    animation: drift 16s ease-in-out infinite;
+  }
+  .mist-1 { width: 280px; height: 280px; top: -60px; left: -50px; background: #8ecae6; opacity: 0.65; }
+  .mist-2 { width: 240px; height: 240px; bottom: -50px; right: -40px; background: #5aa9e6; opacity: 0.5; animation-duration: 20s; }
+  .mist-3 { width: 180px; height: 180px; top: 150px; right: 60px; background: #bde0fe; opacity: 0.55; animation-duration: 13s; }
+  @keyframes drift { 0%,100% { transform: translate(0,0); } 50% { transform: translate(20px, 15px); } }
+
+  #auth-box {
+    position: relative; z-index: 1;
+    background: rgba(255,255,255,0.32);
+    backdrop-filter: blur(30px) saturate(160%);
+    -webkit-backdrop-filter: blur(30px) saturate(160%);
+    border: 1px solid rgba(255,255,255,0.8);
+    border-radius: 20px;
+    padding: 32px;
+    width: 340px;
+    box-shadow: 0 8px 32px rgba(59,126,209,0.2), inset 0 1px 0 rgba(255,255,255,0.6);
+  }
+
+  #brand-row { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; justify-content: center; }
+  #brand-row .mark {
+  width: 28px; height: 28px;
+}
+  #brand-row .name { font-weight: 600; font-size: 17px; color: #1c2b3a; }
+
+  #tabs { display: flex; gap: 6px; background: rgba(255,255,255,0.35); border-radius: 10px; padding: 4px; margin-bottom: 18px; }
+  .tab-btn {
+    flex: 1; padding: 8px; border: none; border-radius: 8px;
+    background: transparent; color: #5c6b7a; font-size: 13px; cursor: pointer;
+  }
+  .tab-btn.active { background: #3b7ed1; color: white; font-weight: 600; }
+
+  input {
+    width: 100%; padding: 10px; border-radius: 10px;
+    background: rgba(255,255,255,0.4); border: 1px solid rgba(59,126,209,0.25);
+    color: #1c2b3a; font-size: 13px; margin-bottom: 12px; box-sizing: border-box;
+  }
+  input::placeholder { color: #7a8a99; }
+
+  video {
+  display: none;
+  margin: 12px auto;
+  width: 220px;
+  height: 260px;
+  object-fit: cover;
+  border-radius: 50% / 60%;
+  transform: scaleX(-1);
+  border: 3px solid rgba(59,126,209,0.4);
+}
+
+    .video-wrap {
+  position: relative;
+  width: 220px;
+  height: 260px;
+  margin: 12px auto;
+  display: none;
+}
+.video-wrap.active { display: block; }
+.video-wrap video { display: block; margin: 0; width: 100%; height: 100%; }
+.scan-line {
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  background: #3b7ed1;
+  box-shadow: 0 0 8px rgba(59,126,209,0.8);
+  animation: scan 2.2s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes scan {
+  0%, 100% { top: 15%; opacity: 0.9; }
+  50% { top: 80%; opacity: 0.9; }
+}
+  button.action {
+    width: 100%; padding: 10px; border: none; border-radius: 10px;
+    background: #3b7ed1; color: white; font-size: 13px; cursor: pointer; margin-top: 6px;
+  }
+  button.action:hover { opacity: 0.9; }
+
+  .face-toggle {
+    width: 100%; padding: 10px; border-radius: 10px;
+    background: rgba(255,255,255,0.5); border: 1px solid rgba(59,126,209,0.3);
+    color: #1c2b3a; font-size: 13px; cursor: pointer; margin-top: 8px;
+  }
+
+  #status { margin-top: 12px; font-size: 12px; color: #5c6b7a; text-align: center; }
+  .panel { display: none; text-align: center; }
+  .panel.active { display: block; }
+</style>
+</head>
+<body>
+
+<div class="mist-blob mist-1"></div>
+<div class="mist-blob mist-2"></div>
+<div class="mist-blob mist-3"></div>
+
+<div id="auth-box">
+  <div id="brand-row">
+  <img src="logo.svg" class="mark" alt="Gupshup logo" style="padding:3px;"/>
+  <div class="name">Gupshup</div>
+</div>
+
+  <div id="tabs">
+    <button class="tab-btn" id="tab-signin">Sign In</button>
+    <button class="tab-btn" id="tab-signup">Create Account</button>
+  </div>
+
+  <div class="panel" id="panel-signup">
+    <input type="text" id="signup-username" placeholder="Choose a username" />
+     <input type="password" id="signup-password" placeholder="Choose a password" />
+    <input type="email" id="signup-email" placeholder="Email (optional)" />
+    <div class="video-wrap" id="signup-video-wrap">
+  <video id="signup-video" autoplay muted></video>
+  <div class="scan-line"></div>
+</div>
+    <button class="action" id="signup-btn">Capture Face &amp; Sign Up</button>
+  </div>
+
+  <div class="panel" id="panel-signin">
+    <input type="text" id="signin-username" placeholder="Username" />
+    <input type="password" id="signin-password" placeholder="Password" />
+    <button class="action" id="signin-username-btn">Sign In</button>
+    <button class="face-toggle" id="face-toggle-btn">Sign in with Face instead</button>
+    <div class="video-wrap" id="signin-video-wrap">
+  <video id="signin-video" autoplay muted></video>
+  <div class="scan-line"></div>
+</div>
+    <button class="action" id="signin-face-btn" style="display:none;">Capture Face &amp; Sign In</button>
+  </div>
+
+  <div id="status"></div>
+</div>
+
+<script>
+const API_BASE = "http://127.0.0.1:8000";
+let modelsLoaded = false;
+
+async function loadFaceModels() {
+  await faceapi.nets.tinyFaceDetector.loadFromUri('./models');
+  await faceapi.nets.faceLandmark68Net.loadFromUri('./models');
+  await faceapi.nets.faceRecognitionNet.loadFromUri('./models');
+  modelsLoaded = true;
+}
+window.addEventListener('load', loadFaceModels);
+
+const statusEl = document.getElementById("status");
+const tabSignup = document.getElementById("tab-signup");
+const tabSignin = document.getElementById("tab-signin");
+const panelSignup = document.getElementById("panel-signup");
+const panelSignin = document.getElementById("panel-signin");
+
+function showTab(tab) {
+  tabSignup.classList.toggle("active", tab === "signup");
+  tabSignin.classList.toggle("active", tab === "signin");
+  panelSignup.classList.toggle("active", tab === "signup");
+  panelSignin.classList.toggle("active", tab === "signin");
+  statusEl.textContent = "";
+}
+
+tabSignup.addEventListener("click", () => showTab("signup"));
+tabSignin.addEventListener("click", () => showTab("signin"));
+
+const hasAccount = localStorage.getItem("gupshup_has_account");
+showTab(hasAccount ? "signin" : "signup");
+
+function stopAllCameras() {
+  [signupVideo, signinVideo].forEach(video => {
+    if (video.srcObject) {
+      video.srcObject.getTracks().forEach(track => track.stop());
+      video.srcObject = null;
+    }
+  });
+}
+
+function goToChat(userId, username) {
+  stopAllCameras();
+  localStorage.setItem("gupshup_user_id", userId);
+  localStorage.setItem("gupshup_username", username);
+  localStorage.setItem("gupshup_has_account", "true");
+  setTimeout(() => { window.location.href = "index.html"; }, 600);
+}
+
+const signupVideo = document.getElementById("signup-video");
+navigator.mediaDevices.getUserMedia({ video: true })
+  .then(stream => {
+    signupVideo.srcObject = stream;
+    document.getElementById("signup-video-wrap").classList.add("active");
+  })
+  .catch(err => { statusEl.textContent = "Camera error: " + err.message; });
+
+document.getElementById("signup-btn").addEventListener("click", async () => {
+  const username = document.getElementById("signup-username").value.trim();
+  const password = document.getElementById("signup-password").value;
+  const email = document.getElementById("signup-email").value.trim();
+  if (!username) { statusEl.textContent = "Please enter a username."; return; }
+  if (!password) { statusEl.textContent = "Please choose a password."; return; }
+  if (!modelsLoaded) { statusEl.textContent = "Face models still loading, try again in a moment."; return; }
+
+  statusEl.textContent = "Detecting face...";
+await new Promise(resolve => setTimeout(resolve, 50));
+const detection = await faceapi
+  .detectSingleFace(signupVideo, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.6 }))
+  .withFaceLandmarks().withFaceDescriptor();
+
+if (!detection || detection.detection.score < 0.85) {
+  statusEl.textContent = "Face not clearly visible, center your whole face and try again.";
+  return;
+}
+
+  const faceEmbedding = Array.from(detection.descriptor);
+  try {
+    const res = await fetch(`${API_BASE}/signup`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, email: email || null, password, face_embedding: faceEmbedding })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      statusEl.textContent = "Account created! Signing you in...";
+      goToChat(data.user_id, data.username);
+    } else {
+      statusEl.textContent = "Error: " + (data.detail || "signup failed");
+    }
+  } catch (err) { statusEl.textContent = "Could not reach server: " + err.message; }
+});
+
+document.getElementById("signin-username-btn").addEventListener("click", async () => {
+  const username = document.getElementById("signin-username").value.trim();
+  const password = document.getElementById("signin-password").value;
+  if (!username) { statusEl.textContent = "Please enter a username."; return; }
+  if (!password) { statusEl.textContent = "Please enter your password."; return; }
+  try {
+    const res = await fetch(`${API_BASE}/signin/username`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      statusEl.textContent = "Signed in as " + data.username;
+      goToChat(data.user_id, data.username);
+    } else {
+      statusEl.textContent = "Error: " + (data.detail || "sign in failed");
+    }
+  } catch (err) { statusEl.textContent = "Could not reach server: " + err.message; }
+});
+
+const signinVideo = document.getElementById("signin-video");
+const faceSigninBtn = document.getElementById("signin-face-btn");
+document.getElementById("face-toggle-btn").addEventListener("click", async (e) => {
+  const on = signinVideo.style.display === "none" || !signinVideo.style.display;
+  if (on) {
+  faceSigninBtn.style.display = "block";
+  e.target.textContent = "Use username instead";
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    signinVideo.srcObject = stream;
+    document.getElementById("signin-video-wrap").classList.add("active");
+  } catch (err) { statusEl.textContent = "Camera error: " + err.message; }
+} else {
+  document.getElementById("signin-video-wrap").classList.remove("active");
+  faceSigninBtn.style.display = "none";
+  e.target.textContent = "Sign in with Face instead";
+}
+});
+
+faceSigninBtn.addEventListener("click", async () => {
+  if (!modelsLoaded) { statusEl.textContent = "Face models still loading, try again."; return; }
+  statusEl.textContent = "Detecting face...";
+  const detection = await faceapi
+  .detectSingleFace(signinVideo, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.6 }))
+  .withFaceLandmarks().withFaceDescriptor();
+
+  if (!detection) { statusEl.textContent = "No face detected, try again."; return; }
+
+  const faceEmbedding = Array.from(detection.descriptor);
+  try {
+    const res = await fetch(`${API_BASE}/signin/face`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ face_embedding: faceEmbedding })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      statusEl.textContent = "Recognized as " + data.username + "!";
+      goToChat(data.user_id, data.username);
+    } else {
+      statusEl.textContent = "Error: " + (data.detail || "no match found");
+    }
+  } catch (err) { statusEl.textContent = "Could not reach server: " + err.message; }
+});
+</script>
+
+</body>
+</html>

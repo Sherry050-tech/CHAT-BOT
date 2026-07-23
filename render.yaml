@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: chatbot-api
+    runtime: docker
+    plan: free
+    branch: main
+    autoDeployTrigger: off
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /
+    envVars:
+      - key: PORT
+        value: "10000"
+      - key: MONGODB_URI
+        sync: false
+      - key: DB_NAME
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false

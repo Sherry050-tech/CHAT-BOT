@@ -3,81 +3,46 @@
 <head>
 <meta charset="UTF-8">
 <title>Gupshup</title>
-
-const testVideo = document.getElementById("test-video");
-const testResult = document.getElementById("test-result");
-
-navigator.mediaDevices.getUserMedia({ video: true })
-  .then(stream => { testVideo.srcObject = stream; })
-  .catch(err => { testResult.textContent = "Camera error: " + err.message; });
-
-document.getElementById("test-detect-btn").addEventListener("click", async () => {
-  if (!modelsLoaded) {
-    testResult.textContent = "Models still loading, wait a moment and try again.";
-    return;
-  }
-  const detection = await faceapi
-    .detectSingleFace(testVideo, new faceapi.TinyFaceDetectorOptions())
-    .withFaceLandmarks()
-    .withFaceDescriptor();
-
-  if (detection) {
-    testResult.textContent = "Face detected! Embedding length: " + detection.descriptor.length;
-  } else {
-    testResult.textContent = "No face detected, try again.";
-  }
-});
-<script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-
-const testVideo = document.getElementById("test-video");
-const testResult = document.getElementById("test-result");
-
-navigator.mediaDevices.getUserMedia({ video: true })
-  .then(stream => { testVideo.srcObject = stream; })
-  .catch(err => { testResult.textContent = "Camera error: " + err.message; });
-
-document.getElementById("test-detect-btn").addEventListener("click", async () => {
-  if (!modelsLoaded) {
-    testResult.textContent = "Models still loading, wait a moment and try again.";
-    return;
-  }
-  const detection = await faceapi
-    .detectSingleFace(testVideo, new faceapi.TinyFaceDetectorOptions())
-    .withFaceLandmarks()
-    .withFaceDescriptor();
-
-  if (detection) {
-    testResult.textContent = "Face detected! Embedding length: " + detection.descriptor.length;
-  } else {
-    testResult.textContent = "No face detected, try again.";
-  }
-});
+<link rel="icon" type="image/svg+xml" href="logo.svg">
 <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 <style>
-  #delete-modal.visible { display: flex !important; }
+  * { box-sizing: border-box; }
   :root {
     --blue: #3b7ed1;
-    --blue-light: #e8f1fb;
-    --bg: #faf9f6;
-    --card: #ffffff;
-    --border: #e5e2da;
-    --text: #26211c;
-    --text-muted: #8a8579;
-    --pattern-blue: rgba(59, 126, 209, 0.05);
+    --blue-light: rgba(59,126,209,0.15);
+    --text: #1c2b3a;
+    --text-muted: #7a8a99;
+    --border: rgba(59,126,209,0.2);
   }
-  * { box-sizing: border-box; }
   body {
     margin: 0;
     font-family: -apple-system, "Segoe UI", sans-serif;
-    background: var(--bg);
+    background: rgb(237, 243, 255);
     color: var(--text);
     height: 100vh;
     display: flex;
+    position: relative;
+    overflow: hidden;
   }
+  .bg-mist {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(60px);
+    pointer-events: none;
+    z-index: 0;
+    animation: drift 18s ease-in-out infinite;
+  }
+  .bg-mist-1 { width: 300px; height: 300px; top: -70px; left: -60px; background: #8ecae6; opacity: 0.45; }
+  .bg-mist-2 { width: 260px; height: 260px; bottom: -60px; right: -60px; background: #5aa9e6; opacity: 0.35; animation-duration: 22s; }
+  @keyframes drift { 0%,100% { transform: translate(0,0); } 50% { transform: translate(20px, 15px); } }
+  #delete-modal.visible { display: flex !important; }
   #sidebar {
+    position: relative; z-index: 1;
     width: 300px;
-    background: var(--bg);
-    border-right: 1px solid var(--border);
+    background: rgba(255,255,255,0.65);
+    backdrop-filter: blur(24px) saturate(150%);
+    -webkit-backdrop-filter: blur(24px) saturate(150%);
+    border-right: 1px solid rgba(255,255,255,0.6);
     padding: 16px;
     display: flex;
     flex-direction: column;
@@ -85,69 +50,70 @@ document.getElementById("test-detect-btn").addEventListener("click", async () =>
   }
   #brand { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
   #brand .mark {
-    width: 26px; height: 26px; border-radius: 7px;
-    background: var(--blue-light); color: var(--blue);
-    display: flex; align-items: center; justify-content: center;
-    font-weight: 700; font-size: 13px;
-  }
-  #brand .name { font-weight: 600; font-size: 15px; }
+  width: 26px; height: 26px;
+}
+  #brand .name { font-weight: 600; font-size: 19px; }
   #new-chat-btn {
-    padding: 8px; border-radius: 8px; border: none;
-    background: var(--blue-light); color: var(--blue); cursor: pointer;
-    font-size: 13px; font-weight: 600;
+    padding: 11px; border-radius: 12px; border: none;
+    background: var(--blue); color: white; cursor: pointer;
+    font-size: 14px; font-weight: 600;
     display: flex; align-items: center; justify-content: center; gap: 6px;
+    box-shadow: 0 3px 10px rgba(59,126,209,0.35);
   }
-  #new-chat-btn:hover { opacity: .85; }
-  #thread-label { font-size: 11px; color: var(--text-muted); margin: 10px 0 2px; }
-  #thread-list { display: flex; flex-direction: column; gap: 3px; overflow-y: auto; }
+  #new-chat-btn:hover { opacity: .9; box-shadow: 0 4px 14px rgba(59,126,209,0.45); }
+  #thread-label { font-size: 13px; font-weight: 600; color: var(--text-muted); margin: 10px 0 4px; }
+  #thread-list { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; flex: 1; }
   .thread-item {
-    font-size: 13px; padding: 7px 9px; border-radius: 8px; cursor: pointer;
-    color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    font-size: 13px; padding: 9px 10px; border-radius: 10px; cursor: pointer;
+    color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     display: flex; align-items: center; gap: 7px;
+    background: rgba(59,126,209,0.09);
+    border: 1px solid rgba(59,126,209,0.18);
   }
-  .thread-item:hover { background: var(--card); }
-  .thread-item.active { background: var(--blue-light); color: var(--blue); font-weight: 600; }
-  #main { flex: 1; display: flex; flex-direction: column; position: relative; background: var(--bg); overflow: hidden; }
-  .mist-blob {
-  position: absolute;
-  border-radius: 50%;
-  background: var(--blue);
-  filter: blur(45px);
-  pointer-events: none;
-  z-index: 0;
-}
-#chat-log, #thinking, #file-chip, #input-bar {
-  position: relative;
-  z-index: 1;
-}
-.mist-side {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 140px;
-  pointer-events: none;
-  z-index: 0;
-  filter: blur(35px);
-}
-.mist-left {
-  left: -60px;
-  background: linear-gradient(180deg, var(--blue) 0%, transparent 100%);
-  opacity: 0.14;
-  animation: sway-left 10s ease-in-out infinite;
-}
-.mist-right {
-  right: -60px;
-  background: linear-gradient(180deg, transparent 0%, var(--blue) 100%);
-  opacity: 0.14;
-  animation: sway-right 12s ease-in-out infinite;
-}
-@keyframes sway-left { 0%,100% { transform: translateX(0); } 50% { transform: translateX(15px); } }
-@keyframes sway-right { 0%,100% { transform: translateX(0); } 50% { transform: translateX(-15px); } }
+  .thread-item:hover { background: rgba(59,126,209,0.2); }
+  .thread-item.active { background: rgba(59,126,209,0.3); border-color: var(--blue); color: var(--blue); font-weight: 600; }
+  #signout-btn {
+    margin-top: 8px;
+    background: rgba(59,126,209,0.12);
+    border: 1px solid rgba(59,126,209,0.3);
+    color: var(--blue);
+    padding: 9px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  #signout-btn:hover { background: rgba(59,126,209,0.22); }
+  @keyframes bounce-click {
+    0% { transform: scale(1); }
+    40% { transform: scale(0.92); }
+    70% { transform: scale(1.04); }
+    100% { transform: scale(1); }
+  }
+  .bounce { animation: bounce-click 0.3s ease; }
+  #main { position: relative; z-index: 1; flex: 1; display: flex; flex-direction: column; }
+  #empty-greeting {
+    position: absolute;
+    top: 38%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 26px;
+    font-weight: 500;
+    font-style: italic;
+    letter-spacing: 0.2px;
+    color: var(--blue);
+    opacity: 0.75;
+    text-align: center;
+    z-index: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+  #empty-greeting.hidden { opacity: 0; }
   #chat-log {
-    flex: 1; overflow-y: auto; padding: 32px 40px 0;
+    flex: 1; overflow-y: auto; padding: 32px 40px 110px;
     display: flex; flex-direction: column; align-items: center; gap: 20px;
   }
-  .msg-row { display: flex; gap: 10px; max-width: 600px; width: 100%; }
+  .msg-row { display: flex; gap: 10px; max-width: 600px; width: 100%; align-items: center; }
   .msg-row.user { justify-content: flex-end; }
   .msg-row.bot { align-items: flex-start; }
   .avatar {
@@ -161,11 +127,10 @@ document.getElementById("test-detect-btn").addEventListener("click", async () =>
     padding: 10px 15px; border-radius: 16px 16px 4px 16px; max-width: 80%;
   }
   .msg-row.bot .bubble { padding-top: 2px; }
-  #thinking {
-    display: none; align-items: center; gap: 8px; max-width: 600px; width: 100%;
-    margin: 0 auto; padding: 0 40px 4px; color: var(--text-muted); font-size: 13px;
+  .msg-link-btn {
+    border: none; background: transparent; cursor: pointer;
+    font-size: 12px; flex-shrink: 0; color: var(--text-muted);
   }
-  #thinking.visible { display: flex; }
   #file-chip {
     display: none; align-items: center; gap: 6px; width: fit-content; max-width: 600px;
     background: var(--blue-light); color: var(--blue); font-size: 12px;
@@ -173,60 +138,76 @@ document.getElementById("test-detect-btn").addEventListener("click", async () =>
   }
   #file-chip.visible { display: flex; }
   #file-chip button { background: none; border: none; color: var(--blue); cursor: pointer; font-size: 13px; }
-  #input-bar { padding: 20px 40px 24px; display: flex; justify-content: center; }
+  #input-bar {
+    position: absolute;
+    left: 0; right: 0;
+    padding: 20px 40px 24px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    transition: top 0.45s ease, bottom 0.45s ease, transform 0.45s ease;
+  }
+  #input-bar.at-bottom {
+    top: auto;
+    bottom: 0;
+    transform: translateY(0);
+  }
+  #thinking {
+    display: none; align-items: center; justify-content: center; gap: 8px; max-width: 600px; width: 100%;
+    color: var(--text-muted); font-size: 13px;
+  }
+  #thinking.visible { display: flex; }
   #input-shell {
-    width: 100%; max-width: 600px; background: var(--card);
-    border: 1px solid var(--border); border-radius: 24px;
+    width: 100%; max-width: 600px;
+    background: rgba(255,255,255,0.45);
+    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+    border: 1px solid rgba(255,255,255,0.7);
+    border-radius: 24px;
     padding: 6px 8px 6px 18px; display: flex; align-items: center; gap: 8px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+    box-shadow: 0 4px 16px rgba(59,126,209,0.15);
   }
   #upload-btn, #send-btn {
     border: none; background: transparent; cursor: pointer;
     width: 32px; height: 32px; border-radius: 999px; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center; font-size: 16px;
   }
-  #upload-btn:hover { background: var(--bg); }
+  #upload-btn:hover { background: rgba(255,255,255,0.4); }
   #send-btn { background: var(--blue); color: white; }
   #send-btn:hover { opacity: .9; }
   #message-input {
     flex: 1; border: none; background: transparent;
-    padding: 8px 4px; font-size: 14px; outline: none;
+    padding: 8px 4px; font-size: 14px; outline: none; color: var(--text);
   }
 </style>
 </head>
 <body>
+<div class="bg-mist bg-mist-1"></div>
+<div class="bg-mist bg-mist-2"></div>
 <div id="delete-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.35); align-items:center; justify-content:center; z-index:100;">
-  <div style="background:var(--card); border-radius:16px; padding:24px; width:320px; box-shadow:0 8px 30px rgba(0,0,0,0.15);">
+  <div style="background:rgba(255,255,255,0.9); backdrop-filter:blur(20px); border-radius:16px; padding:24px; width:320px; box-shadow:0 8px 30px rgba(0,0,0,0.15);">
     <div style="font-weight:600; font-size:15px; margin-bottom:8px;">Delete this chat?</div>
     <div style="font-size:13px; color:var(--text-muted); margin-bottom:20px;">This will permanently delete this chat. Are you sure?</div>
     <div style="display:flex; justify-content:flex-end; gap:8px;">
-      <button id="delete-cancel-btn" style="border:1px solid var(--border); background:var(--card); border-radius:8px; padding:7px 14px; font-size:13px; cursor:pointer;">Cancel</button>
+      <button id="delete-cancel-btn" style="border:1px solid var(--border); background:white; border-radius:8px; padding:7px 14px; font-size:13px; cursor:pointer;">Cancel</button>
       <button id="delete-confirm-btn" style="border:none; background:#d64545; color:white; border-radius:8px; padding:7px 14px; font-size:13px; cursor:pointer;">Delete</button>
     </div>
   </div>
 </div>
-
 <div id="sidebar">
-  <div id="brand"><div class="mark">G</div><div class="name">GupShup</div></div>
+  <div id="brand"><img src="logo.svg" class="mark" alt="Gupshup logo" style="padding:3px;"/><div class="name">Gupshup</div></div>
   <button id="new-chat-btn"><i>+</i> New chat</button>
   <div id="thread-label">THREADS</div>
   <div id="thread-list"></div>
+  <button id="signout-btn">Sign Out</button>
 </div>
-
 <div id="main">
-<div style="padding:20px;">
-  <video id="test-video" width="320" height="240" autoplay muted style="border-radius:8px;"></video>
-  <button id="test-detect-btn">Test Face Detection</button>
-  <div id="test-result" style="margin-top:8px; font-size:13px;"></div>
-</div>
-  <div class="mist-side mist-left"></div>
-  <div class="mist-side mist-right"></div>  
+  <div id="empty-greeting">Ready for some gupshup?</div>
   <div id="chat-log"></div>
-  <div id="thinking"><span>GupShup is thinking...</span></div>
-  <div id="file-chip"><span id="file-chip-name"></span><button id="file-chip-remove">x</button></div>
   <div id="input-bar">
-    <input type="file" id="file-input" style="display:none" />
-    <div id="input-shell">
+  <input type="file" id="file-input" style="display:none" />
+  <div id="file-chip"><span id="file-chip-name"></span><button id="file-chip-remove">x</button></div>
+  <div id="input-shell">
       <button id="upload-btn" title="Upload file">+</button>
       <input type="text" id="message-input" placeholder="Message GupShup" />
       <button id="mic-btn" title="Speak">🎤</button>
@@ -239,8 +220,11 @@ document.getElementById("test-detect-btn").addEventListener("click", async () =>
     </div>
   </div>
 </div>
-
 <script>
+const currentUserId = localStorage.getItem("gupshup_user_id");
+if (!currentUserId) {
+  window.location.href = "auth.html";
+}
 const API_BASE = "http://127.0.0.1:8000";
 // ---------- TTS: Text-to-Speech ----------
 function speak(text) {
@@ -277,17 +261,17 @@ function startListening(onResult, onError) {
 
 let currentThreadId = null;
 let pendingFile = null;
-
+let attachedFileName = null;
 const chatLog = document.getElementById("chat-log");
 const threadList = document.getElementById("thread-list");
+const emptyGreeting = document.getElementById("empty-greeting");
+const inputBar = document.getElementById("input-bar");
 const messageInput = document.getElementById("message-input");
 const thinkingEl = document.getElementById("thinking");
 const fileChip = document.getElementById("file-chip");
 const fileChipName = document.getElementById("file-chip-name");
 const fileInput = document.getElementById("file-input");
-
 let modelsLoaded = false;
-
 async function loadFaceModels() {
   await faceapi.nets.tinyFaceDetector.loadFromUri("./models");
   await faceapi.nets.faceLandmark68Net.loadFromUri("./models");
@@ -295,33 +279,47 @@ async function loadFaceModels() {
   modelsLoaded = true;
   console.log("Face models loaded");
 }
-
 loadFaceModels();
-
-function addMessageToLog(sender, text) {
+function addMessageToLog(sender, text, fileName) {
+  emptyGreeting.classList.add("hidden");
+  inputBar.classList.add("at-bottom");
   const row = document.createElement("div");
   row.className = "msg-row " + (sender === "user" ? "user" : "bot");
-
   if (sender !== "user") {
     const avatar = document.createElement("div");
     avatar.className = "avatar";
     avatar.textContent = "G";
     row.appendChild(avatar);
   }
-
   const bubble = document.createElement("div");
   bubble.className = "bubble";
   bubble.textContent = text;
   row.appendChild(bubble);
+  if (fileName) {
+  const linkBtn = document.createElement("button");
+  linkBtn.className = "msg-link-btn";
+  linkBtn.textContent = "🔗";
+  linkBtn.title = "View attached file";
 
+  const nameLabel = document.createElement("span");
+  nameLabel.textContent = fileName;
+  nameLabel.style.fontSize = "12px";
+  nameLabel.style.color = "var(--text-muted)";
+  nameLabel.style.display = "none";
+
+  linkBtn.addEventListener("click", () => {
+    nameLabel.style.display = nameLabel.style.display === "none" ? "inline" : "none";
+  });
+
+  row.appendChild(linkBtn);
+  row.appendChild(nameLabel);
+}
   chatLog.appendChild(row);
   chatLog.scrollTop = chatLog.scrollHeight;
 }
-
 function clearLog() {
   chatLog.innerHTML = "";
 }
-
 function renderThreadList(threads) {
   threadList.innerHTML = "";
   threads.forEach(thread => {
@@ -330,7 +328,6 @@ function renderThreadList(threads) {
     item.style.display = "flex";
     item.style.alignItems = "center";
     item.style.justifyContent = "space-between";
-
     const label = document.createElement("span");
     label.textContent = thread.title || "Untitled chat";
     label.style.overflow = "hidden";
@@ -338,7 +335,6 @@ function renderThreadList(threads) {
     label.style.whiteSpace = "nowrap";
     label.style.flex = "1";
     label.addEventListener("click", () => openThread(thread.thread_id));
-
     const editBtn = document.createElement("button");
     editBtn.textContent = "✎";
     editBtn.title = "Rename";
@@ -348,7 +344,6 @@ function renderThreadList(threads) {
     editBtn.style.color = "inherit";
     editBtn.style.fontSize = "12px";
     editBtn.style.flexShrink = "0";
-
     const deleteBtn = document.createElement("button");
     deleteBtn.textContent = "🗑";
     deleteBtn.title = "Delete";
@@ -362,10 +357,8 @@ function renderThreadList(threads) {
       e.stopPropagation();
       openDeleteModal(thread.thread_id);
     });
-
     editBtn.addEventListener("click", (e) => {
       e.stopPropagation();
-
       const input = document.createElement("input");
       input.type = "text";
       input.value = thread.title || "";
@@ -374,11 +367,9 @@ function renderThreadList(threads) {
       input.style.border = "1px solid var(--border)";
       input.style.borderRadius = "6px";
       input.style.padding = "2px 6px";
-
       item.replaceChild(input, label);
       input.focus();
       input.select();
-
       async function saveRename() {
         const newTitle = input.value.trim();
         if (newTitle && newTitle !== thread.title) {
@@ -390,46 +381,38 @@ function renderThreadList(threads) {
         }
         loadThreads();
       }
-
       input.addEventListener("keydown", (ev) => {
         if (ev.key === "Enter") saveRename();
         if (ev.key === "Escape") loadThreads();
       });
       input.addEventListener("blur", saveRename);
     });
-
     item.appendChild(label);
     item.appendChild(editBtn);
     item.appendChild(deleteBtn);
     threadList.appendChild(item);
   });
 }
-
 async function loadThreads() {
   try {
-    const res = await fetch(`${API_BASE}/threads`);
+    const res = await fetch(`${API_BASE}/threads?user_id=${currentUserId}`);
     const data = await res.json();
     renderThreadList(data.threads || []);
   } catch (err) {
     console.error("Could not load threads:", err);
   }
 }
-
 let threadPendingDelete = null;
 const deleteModal = document.getElementById("delete-modal");
-
 function openDeleteModal(threadId) {
   threadPendingDelete = threadId;
   deleteModal.classList.add("visible");
 }
-
 function closeDeleteModal() {
   threadPendingDelete = null;
   deleteModal.classList.remove("visible");
 }
-
 document.getElementById("delete-cancel-btn").addEventListener("click", closeDeleteModal);
-
 document.getElementById("delete-confirm-btn").addEventListener("click", async () => {
   if (!threadPendingDelete) return;
   await fetch(`${API_BASE}/threads/${threadPendingDelete}`, { method: "DELETE" });
@@ -440,10 +423,11 @@ document.getElementById("delete-confirm-btn").addEventListener("click", async ()
   closeDeleteModal();
   loadThreads();
 });
-
 async function openThread(threadId) {
   currentThreadId = threadId;
   clearLog();
+  inputBar.classList.add("at-bottom");
+  emptyGreeting.classList.add("hidden");
   try {
     const res = await fetch(`${API_BASE}/threads/${threadId}`);
     const data = await res.json();
@@ -453,45 +437,65 @@ async function openThread(threadId) {
   }
   loadThreads();
 }
-
 function startNewChat() {
   currentThreadId = null;
   clearLog();
+  emptyGreeting.classList.remove("hidden");
+  inputBar.classList.remove("at-bottom");
   loadThreads();
 }
-
 async function sendMessage() {
   const text = messageInput.value.trim();
   if (!text) return;
-  addMessageToLog("user", text);
+  addMessageToLog("user", text, attachedFileName);
+  attachedFileName = null;
   messageInput.value = "";
-  thinkingEl.classList.add("visible");
+  fileChip.classList.remove("visible");
+
+  const placeholder = document.createElement("div");
+  placeholder.className = "msg-row bot";
+  const avatar = document.createElement("div");
+  avatar.className = "avatar";
+  avatar.textContent = "G";
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+  bubble.textContent = "GupShup is thinking...";
+  placeholder.appendChild(avatar);
+  placeholder.appendChild(bubble);
+  chatLog.appendChild(placeholder);
+  chatLog.scrollTop = chatLog.scrollHeight;
+
   try {
     const res = await fetch(`${API_BASE}/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         thread_id: currentThreadId,
-        message: text
+        message: text,
+        user_id: currentUserId
       })
     });
     const data = await res.json();
     if (data.thread_id) currentThreadId = data.thread_id;
+    placeholder.remove();
     addMessageToLog("bot", data.reply);
     speak(data.reply);
   } catch (err) {
     console.error("Chat request failed:", err);
+    placeholder.remove();
     addMessageToLog("bot", "Something went wrong reaching the server.");
   } finally {
-    thinkingEl.classList.remove("visible");
     loadThreads();
   }
 }
-
 async function uploadFile(file) {
   const formData = new FormData();
   formData.append("file", file);
   if (currentThreadId) formData.append("thread_id", currentThreadId);
+
+  fileChipName.textContent = `Uploading ${file.name}...`;
+  fileChip.classList.add("visible");
+
   try {
     const res = await fetch(`${API_BASE}/upload`, {
       method: "POST",
@@ -499,14 +503,17 @@ async function uploadFile(file) {
     });
     const data = await res.json();
     if (data.thread_id) currentThreadId = data.thread_id;
-    fileChipName.textContent = `${data.filename} (${data.chunks_stored} chunks)`;
-    fileChip.classList.add("visible");
+    fileChipName.textContent = data.filename;
+    attachedFileName = data.filename;
     loadThreads();
   } catch (err) {
     console.error("Upload failed:", err);
+    fileChipName.textContent = "Upload failed";
+    setTimeout(() => {
+      fileChip.classList.remove("visible");
+    }, 1800);
   }
 }
-
 document.getElementById("send-btn").addEventListener("click", sendMessage);
 document.getElementById("mic-btn").addEventListener("click", () => {
   startListening(
@@ -521,7 +528,18 @@ document.getElementById("mic-btn").addEventListener("click", () => {
 messageInput.addEventListener("keydown", e => {
   if (e.key === "Enter") sendMessage();
 });
-document.getElementById("new-chat-btn").addEventListener("click", startNewChat);
+messageInput.addEventListener("input", () => {
+  if (messageInput.value.trim().length > 0) {
+    emptyGreeting.classList.add("hidden");
+  } else if (chatLog.children.length === 0) {
+    emptyGreeting.classList.remove("hidden");
+  }
+});
+document.getElementById("new-chat-btn").addEventListener("click", (e) => {
+  e.currentTarget.classList.remove("bounce");
+  requestAnimationFrame(() => e.currentTarget.classList.add("bounce"));
+  startNewChat();
+});
 document.getElementById("upload-btn").addEventListener("click", () => fileInput.click());
 fileInput.addEventListener("change", () => {
   if (fileInput.files.length > 0) {
@@ -533,33 +551,14 @@ document.getElementById("file-chip-remove").addEventListener("click", () => {
   fileChip.classList.remove("visible");
   pendingFile = null;
 });
-
-loadThreads();
-
-const testVideo = document.getElementById("test-video");
-const testResult = document.getElementById("test-result");
-
-navigator.mediaDevices.getUserMedia({ video: true })
-  .then(stream => { testVideo.srcObject = stream; })
-  .catch(err => { testResult.textContent = "Camera error: " + err.message; });
-
-document.getElementById("test-detect-btn").addEventListener("click", async () => {
-  if (!modelsLoaded) {
-    testResult.textContent = "Models still loading, wait a moment and try again.";
-    return;
-  }
-  const detection = await faceapi
-    .detectSingleFace(testVideo, new faceapi.TinyFaceDetectorOptions())
-    .withFaceLandmarks()
-    .withFaceDescriptor();
-
-  if (detection) {
-    testResult.textContent = "Face detected! Embedding length: " + detection.descriptor.length;
-  } else {
-    testResult.textContent = "No face detected, try again.";
-  }
+document.getElementById("signout-btn").addEventListener("click", (e) => {
+  e.currentTarget.classList.remove("bounce");
+  requestAnimationFrame(() => e.currentTarget.classList.add("bounce"));
+  localStorage.removeItem("gupshup_user_id");
+  localStorage.removeItem("gupshup_username");
+  window.location.href = "auth.html";
 });
+loadThreads();
 </script>
-
 </body>
 </html>

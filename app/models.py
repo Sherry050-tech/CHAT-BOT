@@ -28,6 +28,8 @@ class User(BaseModel):
     id: str = Field(default_factory=new_id)
     username: str
     email: Optional[str] = None
+    face_embedding: Optional[list[float]] = None
+    password_hash: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
@@ -42,6 +44,7 @@ class DocumentChunk(BaseModel):
 class ChatRequest(BaseModel):
     thread_id: Optional[str] = None
     message: str
+    user_id: Optional[str] = None
 
 class ChatResponse(BaseModel):
     thread_id: str
