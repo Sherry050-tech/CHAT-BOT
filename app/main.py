@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.routers import chat_router
 from app.routers import upload_router
 from app.routers import auth_router
+from app.routers import speech_router
 
 # STEP 1: Create the FastAPI application.
 # The title and description show up on the auto-generated docs at /docs
@@ -39,6 +40,8 @@ app.add_middleware(
 app.include_router(chat_router.router)
 app.include_router(upload_router.router)
 app.include_router(auth_router.router)
+app.include_router(speech_router.router)
+
 
 
 # STEP 4: A simple health check.

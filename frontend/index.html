@@ -84,6 +84,18 @@
     cursor: pointer;
   }
   #signout-btn:hover { background: rgba(59,126,209,0.22); }
+
+  #tts-toggle-btn {
+    padding: 9px;
+    border-radius: 10px;
+    border: 1px solid rgba(59,126,209,0.3);
+    background: rgba(59,126,209,0.12);
+    color: var(--blue);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+#tts-toggle-btn:hover { background: rgba(59,126,209,0.22); }
   @keyframes bounce-click {
     0% { transform: scale(1); }
     40% { transform: scale(0.92); }
@@ -167,7 +179,7 @@
     padding: 6px 8px 6px 18px; display: flex; align-items: center; gap: 8px;
     box-shadow: 0 4px 16px rgba(59,126,209,0.15);
   }
-  #upload-btn, #send-btn {
+  #upload-btn, #mic-btn, #send-btn {
     border: none; background: transparent; cursor: pointer;
     width: 32px; height: 32px; border-radius: 999px; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center; font-size: 16px;
@@ -195,20 +207,22 @@
   </div>
 </div>
 <div id="sidebar">
-  <div id="brand"><img src="logo.svg" class="mark" alt="Gupshup logo" style="padding:3px;"/><div class="name">Gupshup</div></div>
+  <div id="brand"><img src="logo.svg" class="mark" alt="Gupshup logo" style="padding:3px;"/><div class="name">GupShup</div></div>
   <button id="new-chat-btn"><i>+</i> New chat</button>
   <div id="thread-label">THREADS</div>
   <div id="thread-list"></div>
+  <button id="tts-toggle-btn">🔊 Voice replies: Off</button>
   <button id="signout-btn">Sign Out</button>
 </div>
 <div id="main">
-  <div id="empty-greeting">Ready for some gupshup?</div>
+  <div id="empty-greeting">Ready for some GupShup?</div>
   <div id="chat-log"></div>
   <div id="input-bar">
   <input type="file" id="file-input" style="display:none" />
   <div id="file-chip"><span id="file-chip-name"></span><button id="file-chip-remove">x</button></div>
   <div id="input-shell">
       <button id="upload-btn" title="Upload file">+</button>
+      <button id="mic-btn" title="Speak your message">🎤</button>
       <input type="text" id="message-input" placeholder="Message GupShup" />
       <button id="send-btn" title="Send">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -228,6 +242,20 @@ const API_BASE = "http://127.0.0.1:8000";
 let currentThreadId = null;
 let pendingFile = null;
 let attachedFileName = null;
+let voiceRepliesOn = false;
+
+document.getElementById("tts-toggle-btn").addEventListener("click", (e) => {
+  voiceRepliesOn = !voiceRepliesOn;
+  e.target.textContent = voiceRepliesOn ? "🔊 Voice replies: On" : "🔊 Voice replies: Off";
+});
+
+function speakText(text) {
+  if (!voiceRepliesOn) return;
+  speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = "en-US";
+  speechSynthesis.speak(utterance);
+}
 const chatLog = document.getElementById("chat-log");
 const threadList = document.getElementById("thread-list");
 const emptyGreeting = document.getElementById("empty-greeting");
@@ -445,6 +473,7 @@ async function sendMessage() {
     if (data.thread_id) currentThreadId = data.thread_id;
     placeholder.remove();
     addMessageToLog("bot", data.reply);
+    speakText(data.reply);
   } catch (err) {
     console.error("Chat request failed:", err);
     placeholder.remove();
@@ -479,6 +508,49 @@ async function uploadFile(file) {
     }, 1800);
   }
 }
+
+let mediaRecorder;
+let audioChunks = [];
+
+document.getElementById("mic-btn").addEventListener("click", async () => {
+  const micBtn = document.getElementById("mic-btn");
+
+  if (!mediaRecorder || mediaRecorder.state === "inactive") {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream);
+    audioChunks = [];
+
+    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+
+    mediaRecorder.onstop = async () => {
+      const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+      const formData = new FormData();
+      formData.append("file", audioBlob, "recording.webm");
+
+      micBtn.textContent = "⏳";
+      try {
+        const res = await fetch(`${API_BASE}/transcribe`, {
+          method: "POST",
+          body: formData
+      });
+      const data = await res.json();
+      if (res.ok) {
+        messageInput.value = data.text;
+      } else {
+        messageInput.placeholder = data.detail || "Could not transcribe, try again";
+      }
+    } catch (err) {
+      console.error("Transcription failed:", err);
+    }
+    micBtn.textContent = "🎤";
+    };
+
+    mediaRecorder.start();
+    micBtn.textContent = "⏹";
+  } else {
+    mediaRecorder.stop();
+  }
+});
 document.getElementById("send-btn").addEventListener("click", sendMessage);
 messageInput.addEventListener("keydown", e => {
   if (e.key === "Enter") sendMessage();
