@@ -1,12 +1,19 @@
 from pypdf import PdfReader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from sentence_transformers import SentenceTransformer
 from io import BytesIO
 import numpy as np
 from app.models import DocumentChunk
 from app.crud import create_document_chunk
 
-embedder = SentenceTransformer("all-MiniLM-L6-v2")
+_embedder = None
+
+
+def get_embedder():
+    global _embedder
+    if _embedder is None:
+        from sentence_transformers import SentenceTransformer
+        _embedder = SentenceTransformer("all-MiniLM-L6-v2")
+    return _embedder
 
 
 def extract_text_from_pdf(file_source):
@@ -23,7 +30,7 @@ def chunk_text(text):
 
 
 def embed_chunks(chunks):
-    return embedder.encode(chunks)
+    return get_embedder().encode(chunks)
 
 
 def cosine_similarity(a, b):
@@ -32,7 +39,7 @@ def cosine_similarity(a, b):
 
 
 def retrieve_top_chunks(question, chunks, vectors, top_k=3):
-    question_vector = embedder.encode(question)
+    question_vector = get_embedder().encode(question)
     scored = []
     for chunk_text, chunk_vector in zip(chunks, vectors):
         score = cosine_similarity(question_vector, chunk_vector)
