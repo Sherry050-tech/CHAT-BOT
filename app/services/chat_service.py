@@ -41,8 +41,14 @@ from app.crud import (
 from app.services.rag_service import retrieve_top_chunks
 
 # Upgraded to a model trained specifically for JSON tool calling
+# llm = ChatOpenAI(
+#     model='meta-llama/llama-3.1-8b-instruct:free',
+#     temperature=0.3,
+#     openai_api_key=os.getenv('OPENROUTER_API_KEY'),
+#     openai_api_base='https://openrouter.ai/api/v1',
+# )
 llm = ChatOpenAI(
-    model='meta-llama/llama-3.1-8b-instruct:free',
+    model='openrouter/free',
     temperature=0.3,
     openai_api_key=os.getenv('OPENROUTER_API_KEY'),
     openai_api_base='https://openrouter.ai/api/v1',
