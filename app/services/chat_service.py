@@ -15,12 +15,13 @@ Updated to match team conventions:
 - Imports from app.database / app.models (shared app/ package)
 
 New Additions:
-- Tool Calling: Added `get_current_time` and the LangChain tool execution loop.
+- Tool Calling: Added `get_current_time`, `get_weather`, and the LangChain tool execution loop.
 - Guardrails: Added input validation, try/except error fallbacks, and regex output cleaning.
 """
 
 import os
 import re
+import requests
 from datetime import datetime
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage, ToolMessage
@@ -60,8 +61,20 @@ def get_current_time() -> str:
     """Always use this tool when the user asks for the current time, date, or day."""
     return f"The current server time is {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
 
+@tool
+def get_weather(location: str) -> str:
+    """Always use this tool when the user asks for the weather in a specific city or location."""
+    try:
+        # wttr.in is a free, no-key weather API. format=3 gives a clean, short string.
+        response = requests.get(f"https://wttr.in/{location}?format=3")
+        if response.status_code == 200:
+            return response.text.strip()
+        return f"Could not fetch weather for {location}."
+    except Exception as e:
+        return f"Error fetching weather: {str(e)}"
+
 # Group all available tools here
-tools = [get_current_time]
+tools = [get_current_time, get_weather]
 
 
 # ---------- DATABASE/CRUD WRAPPERS ----------
@@ -155,12 +168,14 @@ def generate_reply(thread_id: str | None, user_message: str, user_id: str = "ano
             for tool_call in response.tool_calls:
                 if tool_call["name"] == "get_current_time":
                     tool_output = get_current_time.invoke(tool_call["args"])
+                elif tool_call["name"] == "get_weather":
+                    tool_output = get_weather.invoke(tool_call["args"])
                     
-                    # Append the Python function's result back into the chat history
-                    lc_messages.append(ToolMessage(
-                        content=str(tool_output),
-                        tool_call_id=tool_call["id"]
-                    ))
+                # Append the Python function's result back into the chat history
+                lc_messages.append(ToolMessage(
+                    content=str(tool_output),
+                    tool_call_id=tool_call["id"]
+                ))
             
             # 5. Call the LLM a second time so it can read the tool output and write a final answer
             response = llm_with_tools.invoke(lc_messages)
