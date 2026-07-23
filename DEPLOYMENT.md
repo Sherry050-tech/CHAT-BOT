@@ -11,7 +11,7 @@ On every pull request and every push to `main`, it will:
 3. Run the automated test suite.
 4. Build the Docker image to confirm the app can be packaged.
 
-On every push to `main`, after all checks pass, GitHub Actions triggers a Render deploy.
+On every push to `main`, after all checks pass, GitHub Actions deploys to Railway.
 
 ## Required GitHub secrets
 
@@ -22,12 +22,15 @@ Add these in GitHub under:
 - `MONGODB_URI`
 - `DB_NAME`
 - `OPENROUTER_API_KEY`
-- `RENDER_DEPLOY_HOOK_URL`
+- `GROQ_API_KEY`
+- `RAILWAY_TOKEN`
+- `RAILWAY_SERVICE_ID`
 
 The CI workflow uses safe dummy values because the current health test does not call MongoDB or OpenRouter.
 Production deployment must use the real values.
 
-`RENDER_DEPLOY_HOOK_URL` comes from the Render service's Settings page.
+`RAILWAY_TOKEN` comes from the Railway project settings.
+`RAILWAY_SERVICE_ID` is the target Railway service ID.
 
 ## Docker
 
@@ -43,37 +46,45 @@ Run locally:
 docker run --env-file .env -p 8000:8000 chatbot-api
 ```
 
+The Docker image uses `requirements-render.txt`, which excludes `sentence-transformers`
+so the API can run on Render's free 512 MiB instance. The full local development
+dependencies remain in `requirements.txt`.
+
+Because of that memory limit, document upload/RAG embeddings need either:
+
+- a larger Render instance, or
+- a different hosted embedding provider.
+
 The backend starts with:
 
 ```bash
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-## Render setup
+## Railway setup
 
-1. Create a new Web Service on Render.
-2. Connect the GitHub repository.
-3. Choose Docker as the runtime.
-4. Use the `main` branch.
-5. Set Auto-Deploy to off, because GitHub Actions triggers deploys only after CI passes.
-6. If Render shows a Docker Command field, set it to:
+1. Create a new Railway project.
+2. Create a new service from this GitHub repository.
+3. Railway will use the `Dockerfile` in the repository.
+4. Set the start command if Railway asks for one:
    `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-7. Add the production environment variables:
+5. Add the production environment variables:
    - `MONGODB_URI`
    - `DB_NAME`
    - `OPENROUTER_API_KEY`
-8. Copy the service's Deploy Hook URL from Render Settings.
-9. Add it to GitHub Actions secrets as `RENDER_DEPLOY_HOOK_URL`.
-
-The included `render.yaml` can also be used as a Render Blueprint. It defines a Docker web service and marks production secrets with `sync: false`, which means values must be entered in the Render dashboard.
+   - `GROQ_API_KEY`
+6. Create a Railway project token.
+7. Add the project token to GitHub Actions secrets as `RAILWAY_TOKEN`.
+8. Copy the Railway service ID.
+9. Add the service ID to GitHub Actions secrets as `RAILWAY_SERVICE_ID`.
 
 ## Deployment flow
 
 1. Push to `main`.
 2. GitHub Actions runs tests and linting.
 3. GitHub Actions builds the Docker image.
-4. If everything passes, GitHub Actions calls Render's deploy hook.
-5. Render builds the Docker image from this repo and deploys the backend.
+4. If everything passes, GitHub Actions runs `railway up --ci`.
+5. Railway builds the Docker image from this repo and deploys the backend.
 
 ## Frontend
 
