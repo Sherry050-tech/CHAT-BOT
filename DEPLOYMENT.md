@@ -56,12 +56,14 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 3. Choose Docker as the runtime.
 4. Use the `main` branch.
 5. Set Auto-Deploy to off, because GitHub Actions triggers deploys only after CI passes.
-6. Add the production environment variables:
+6. If Render shows a Docker Command field, set it to:
+   `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+7. Add the production environment variables:
    - `MONGODB_URI`
    - `DB_NAME`
    - `OPENROUTER_API_KEY`
-7. Copy the service's Deploy Hook URL from Render Settings.
-8. Add it to GitHub Actions secrets as `RENDER_DEPLOY_HOOK_URL`.
+8. Copy the service's Deploy Hook URL from Render Settings.
+9. Add it to GitHub Actions secrets as `RENDER_DEPLOY_HOOK_URL`.
 
 The included `render.yaml` can also be used as a Render Blueprint. It defines a Docker web service and marks production secrets with `sync: false`, which means values must be entered in the Render dashboard.
 
