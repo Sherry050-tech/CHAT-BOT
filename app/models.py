@@ -28,6 +28,7 @@ class User(BaseModel):
     id: str = Field(default_factory=new_id)
     username: str
     email: Optional[str] = None
+    face_embedding: Optional[list[float]] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 

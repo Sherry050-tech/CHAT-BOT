@@ -3,17 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <title>Gupshup</title>
+<script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 <style>
+  #delete-modal.visible { display: flex !important; }
   :root {
-    --coral: #d85a30;
-    --coral-light: #faece7;
-    --teal: #0f6e56;
-    --teal-light: #e1f5ee;
+    --blue: #3b7ed1;
+    --blue-light: #e8f1fb;
     --bg: #faf9f6;
     --card: #ffffff;
     --border: #e5e2da;
     --text: #26211c;
     --text-muted: #8a8579;
+    --pattern-blue: rgba(59, 126, 209, 0.05);
   }
   * { box-sizing: border-box; }
   body {
@@ -25,7 +26,7 @@
     display: flex;
   }
   #sidebar {
-    width: 220px;
+    width: 300px;
     background: var(--bg);
     border-right: 1px solid var(--border);
     padding: 16px;
@@ -36,14 +37,14 @@
   #brand { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
   #brand .mark {
     width: 26px; height: 26px; border-radius: 7px;
-    background: var(--coral-light); color: var(--coral);
+    background: var(--blue-light); color: var(--blue);
     display: flex; align-items: center; justify-content: center;
     font-weight: 700; font-size: 13px;
   }
   #brand .name { font-weight: 600; font-size: 15px; }
   #new-chat-btn {
     padding: 8px; border-radius: 8px; border: none;
-    background: var(--coral-light); color: var(--coral); cursor: pointer;
+    background: var(--blue-light); color: var(--blue); cursor: pointer;
     font-size: 13px; font-weight: 600;
     display: flex; align-items: center; justify-content: center; gap: 6px;
   }
@@ -56,8 +57,43 @@
     display: flex; align-items: center; gap: 7px;
   }
   .thread-item:hover { background: var(--card); }
-  .thread-item.active { background: var(--teal-light); color: var(--teal); font-weight: 600; }
-  #main { flex: 1; display: flex; flex-direction: column; position: relative; background: var(--bg); }
+  .thread-item.active { background: var(--blue-light); color: var(--blue); font-weight: 600; }
+  #main { flex: 1; display: flex; flex-direction: column; position: relative; background: var(--bg); overflow: hidden; }
+  .mist-blob {
+  position: absolute;
+  border-radius: 50%;
+  background: var(--blue);
+  filter: blur(45px);
+  pointer-events: none;
+  z-index: 0;
+}
+#chat-log, #thinking, #file-chip, #input-bar {
+  position: relative;
+  z-index: 1;
+}
+.mist-side {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 140px;
+  pointer-events: none;
+  z-index: 0;
+  filter: blur(35px);
+}
+.mist-left {
+  left: -60px;
+  background: linear-gradient(180deg, var(--blue) 0%, transparent 100%);
+  opacity: 0.14;
+  animation: sway-left 10s ease-in-out infinite;
+}
+.mist-right {
+  right: -60px;
+  background: linear-gradient(180deg, transparent 0%, var(--blue) 100%);
+  opacity: 0.14;
+  animation: sway-right 12s ease-in-out infinite;
+}
+@keyframes sway-left { 0%,100% { transform: translateX(0); } 50% { transform: translateX(15px); } }
+@keyframes sway-right { 0%,100% { transform: translateX(0); } 50% { transform: translateX(-15px); } }
   #chat-log {
     flex: 1; overflow-y: auto; padding: 32px 40px 0;
     display: flex; flex-direction: column; align-items: center; gap: 20px;
@@ -67,12 +103,12 @@
   .msg-row.bot { align-items: flex-start; }
   .avatar {
     width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
-    background: var(--teal-light); color: var(--teal);
+    background: var(--blue-light); color: var(--blue);
     display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700;
   }
   .bubble { font-size: 14px; line-height: 1.6; }
   .msg-row.user .bubble {
-    background: var(--coral-light); color: var(--text);
+    background: var(--blue-light); color: var(--text);
     padding: 10px 15px; border-radius: 16px 16px 4px 16px; max-width: 80%;
   }
   .msg-row.bot .bubble { padding-top: 2px; }
@@ -83,11 +119,11 @@
   #thinking.visible { display: flex; }
   #file-chip {
     display: none; align-items: center; gap: 6px; width: fit-content; max-width: 600px;
-    background: var(--teal-light); color: var(--teal); font-size: 12px;
+    background: var(--blue-light); color: var(--blue); font-size: 12px;
     padding: 4px 10px; border-radius: 999px; margin: 8px auto 0;
   }
   #file-chip.visible { display: flex; }
-  #file-chip button { background: none; border: none; color: var(--teal); cursor: pointer; font-size: 13px; }
+  #file-chip button { background: none; border: none; color: var(--blue); cursor: pointer; font-size: 13px; }
   #input-bar { padding: 20px 40px 24px; display: flex; justify-content: center; }
   #input-shell {
     width: 100%; max-width: 600px; background: var(--card);
@@ -101,7 +137,7 @@
     display: flex; align-items: center; justify-content: center; font-size: 16px;
   }
   #upload-btn:hover { background: var(--bg); }
-  #send-btn { background: var(--coral); color: white; }
+  #send-btn { background: var(--blue); color: white; }
   #send-btn:hover { opacity: .9; }
   #message-input {
     flex: 1; border: none; background: transparent;
@@ -110,29 +146,52 @@
 </style>
 </head>
 <body>
+<div id="delete-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.35); align-items:center; justify-content:center; z-index:100;">
+  <div style="background:var(--card); border-radius:16px; padding:24px; width:320px; box-shadow:0 8px 30px rgba(0,0,0,0.15);">
+    <div style="font-weight:600; font-size:15px; margin-bottom:8px;">Delete this chat?</div>
+    <div style="font-size:13px; color:var(--text-muted); margin-bottom:20px;">This will permanently delete this chat. Are you sure?</div>
+    <div style="display:flex; justify-content:flex-end; gap:8px;">
+      <button id="delete-cancel-btn" style="border:1px solid var(--border); background:var(--card); border-radius:8px; padding:7px 14px; font-size:13px; cursor:pointer;">Cancel</button>
+      <button id="delete-confirm-btn" style="border:none; background:#d64545; color:white; border-radius:8px; padding:7px 14px; font-size:13px; cursor:pointer;">Delete</button>
+    </div>
+  </div>
+</div>
 
 <div id="sidebar">
-  <div id="brand"><div class="mark">G</div><div class="name">Gupshup</div></div>
+  <div id="brand"><div class="mark">G</div><div class="name">GupShup</div></div>
   <button id="new-chat-btn"><i>+</i> New chat</button>
   <div id="thread-label">THREADS</div>
   <div id="thread-list"></div>
 </div>
 
 <div id="main">
+<div style="padding:20px;">
+</div>
+  <div class="mist-side mist-left"></div>
+  <div class="mist-side mist-right"></div>  
   <div id="chat-log"></div>
-  <div id="thinking"><span>Gupshup is thinking...</span></div>
+  <div id="thinking"><span>GupShup is thinking...</span></div>
   <div id="file-chip"><span id="file-chip-name"></span><button id="file-chip-remove">x</button></div>
   <div id="input-bar">
     <input type="file" id="file-input" style="display:none" />
     <div id="input-shell">
       <button id="upload-btn" title="Upload file">+</button>
-      <input type="text" id="message-input" placeholder="Message Gupshup" />
-      <button id="send-btn" title="Send">-></button>
+      <input type="text" id="message-input" placeholder="Message GupShup" />
+      <button id="send-btn" title="Send">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="19" x2="12" y2="5"></line>
+          <polyline points="5 12 12 5 19 12"></polyline>
+        </svg>
+      </button>
     </div>
   </div>
 </div>
 
 <script>
+const currentUserId = localStorage.getItem("gupshup_user_id");
+if (!currentUserId) {
+  window.location.href = "auth.html";
+}
 const API_BASE = "http://127.0.0.1:8000";
 let currentThreadId = null;
 let pendingFile = null;
@@ -144,6 +203,18 @@ const thinkingEl = document.getElementById("thinking");
 const fileChip = document.getElementById("file-chip");
 const fileChipName = document.getElementById("file-chip-name");
 const fileInput = document.getElementById("file-input");
+
+let modelsLoaded = false;
+
+async function loadFaceModels() {
+  await faceapi.nets.tinyFaceDetector.loadFromUri("./models");
+  await faceapi.nets.faceLandmark68Net.loadFromUri("./models");
+  await faceapi.nets.faceRecognitionNet.loadFromUri("./models");
+  modelsLoaded = true;
+  console.log("Face models loaded");
+}
+
+loadFaceModels();
 
 function addMessageToLog(sender, text) {
   const row = document.createElement("div");
@@ -174,8 +245,80 @@ function renderThreadList(threads) {
   threads.forEach(thread => {
     const item = document.createElement("div");
     item.className = "thread-item" + (thread.thread_id === currentThreadId ? " active" : "");
-    item.textContent = thread.title || "Untitled chat";
-    item.addEventListener("click", () => openThread(thread.thread_id));
+    item.style.display = "flex";
+    item.style.alignItems = "center";
+    item.style.justifyContent = "space-between";
+
+    const label = document.createElement("span");
+    label.textContent = thread.title || "Untitled chat";
+    label.style.overflow = "hidden";
+    label.style.textOverflow = "ellipsis";
+    label.style.whiteSpace = "nowrap";
+    label.style.flex = "1";
+    label.addEventListener("click", () => openThread(thread.thread_id));
+
+    const editBtn = document.createElement("button");
+    editBtn.textContent = "✎";
+    editBtn.title = "Rename";
+    editBtn.style.border = "none";
+    editBtn.style.background = "transparent";
+    editBtn.style.cursor = "pointer";
+    editBtn.style.color = "inherit";
+    editBtn.style.fontSize = "12px";
+    editBtn.style.flexShrink = "0";
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.textContent = "🗑";
+    deleteBtn.title = "Delete";
+    deleteBtn.style.border = "none";
+    deleteBtn.style.background = "transparent";
+    deleteBtn.style.cursor = "pointer";
+    deleteBtn.style.color = "inherit";
+    deleteBtn.style.fontSize = "12px";
+    deleteBtn.style.flexShrink = "0";
+    deleteBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      openDeleteModal(thread.thread_id);
+    });
+
+    editBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+
+      const input = document.createElement("input");
+      input.type = "text";
+      input.value = thread.title || "";
+      input.style.flex = "1";
+      input.style.fontSize = "13px";
+      input.style.border = "1px solid var(--border)";
+      input.style.borderRadius = "6px";
+      input.style.padding = "2px 6px";
+
+      item.replaceChild(input, label);
+      input.focus();
+      input.select();
+
+      async function saveRename() {
+        const newTitle = input.value.trim();
+        if (newTitle && newTitle !== thread.title) {
+          await fetch(`${API_BASE}/threads/${thread.thread_id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title: newTitle })
+          });
+        }
+        loadThreads();
+      }
+
+      input.addEventListener("keydown", (ev) => {
+        if (ev.key === "Enter") saveRename();
+        if (ev.key === "Escape") loadThreads();
+      });
+      input.addEventListener("blur", saveRename);
+    });
+
+    item.appendChild(label);
+    item.appendChild(editBtn);
+    item.appendChild(deleteBtn);
     threadList.appendChild(item);
   });
 }
@@ -189,6 +332,32 @@ async function loadThreads() {
     console.error("Could not load threads:", err);
   }
 }
+
+let threadPendingDelete = null;
+const deleteModal = document.getElementById("delete-modal");
+
+function openDeleteModal(threadId) {
+  threadPendingDelete = threadId;
+  deleteModal.classList.add("visible");
+}
+
+function closeDeleteModal() {
+  threadPendingDelete = null;
+  deleteModal.classList.remove("visible");
+}
+
+document.getElementById("delete-cancel-btn").addEventListener("click", closeDeleteModal);
+
+document.getElementById("delete-confirm-btn").addEventListener("click", async () => {
+  if (!threadPendingDelete) return;
+  await fetch(`${API_BASE}/threads/${threadPendingDelete}`, { method: "DELETE" });
+  if (threadPendingDelete === currentThreadId) {
+    currentThreadId = null;
+    clearLog();
+  }
+  closeDeleteModal();
+  loadThreads();
+});
 
 async function openThread(threadId) {
   currentThreadId = threadId;

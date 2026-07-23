@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.routers import chat_router
 from app.routers import upload_router
-
+from app.routers import auth_router
 
 # STEP 1: Create the FastAPI application.
 # The title and description show up on the auto-generated docs at /docs
@@ -27,7 +27,8 @@ app = FastAPI(
 # allow_origins=["*"] means "allow everyone" - fine for development only.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:5500", "http://127.0.0.1:5500"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -37,6 +38,7 @@ app.add_middleware(
 # Without these lines the /chat and /upload endpoints would not exist.
 app.include_router(chat_router.router)
 app.include_router(upload_router.router)
+app.include_router(auth_router.router)
 
 
 # STEP 4: A simple health check.
