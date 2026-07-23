@@ -11,6 +11,8 @@ On every pull request and every push to `main`, it will:
 3. Run the automated test suite.
 4. Build the Docker image to confirm the app can be packaged.
 
+On every push to `main`, after all checks pass, GitHub Actions triggers a Render deploy.
+
 ## Required GitHub secrets
 
 Add these in GitHub under:
@@ -20,9 +22,12 @@ Add these in GitHub under:
 - `MONGODB_URI`
 - `DB_NAME`
 - `OPENROUTER_API_KEY`
+- `RENDER_DEPLOY_HOOK_URL`
 
 The CI workflow uses safe dummy values because the current health test does not call MongoDB or OpenRouter.
 Production deployment must use the real values.
+
+`RENDER_DEPLOY_HOOK_URL` comes from the Render service's Settings page.
 
 ## Docker
 
@@ -44,16 +49,29 @@ The backend starts with:
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-## CD provider still needed
+## Render setup
 
-Actual deployment needs the hosting provider your teammate chooses, such as Render, Railway, Fly.io, Azure, AWS, or a VPS.
+1. Create a new Web Service on Render.
+2. Connect the GitHub repository.
+3. Choose Docker as the runtime.
+4. Use the `main` branch.
+5. Set Auto-Deploy to off, because GitHub Actions triggers deploys only after CI passes.
+6. Add the production environment variables:
+   - `MONGODB_URI`
+   - `DB_NAME`
+   - `OPENROUTER_API_KEY`
+7. Copy the service's Deploy Hook URL from Render Settings.
+8. Add it to GitHub Actions secrets as `RENDER_DEPLOY_HOOK_URL`.
 
-Once the provider is known, add one provider-specific workflow or connect the provider directly to GitHub. The deployment should run automatically after CI passes on `main`.
+The included `render.yaml` can also be used as a Render Blueprint. It defines a Docker web service and marks production secrets with `sync: false`, which means values must be entered in the Render dashboard.
 
-Recommended simple options:
+## Deployment flow
 
-- Render or Railway for the fastest setup.
-- AWS/Azure if the project needs a more production-style cloud setup.
+1. Push to `main`.
+2. GitHub Actions runs tests and linting.
+3. GitHub Actions builds the Docker image.
+4. If everything passes, GitHub Actions calls Render's deploy hook.
+5. Render builds the Docker image from this repo and deploys the backend.
 
 ## Frontend
 
